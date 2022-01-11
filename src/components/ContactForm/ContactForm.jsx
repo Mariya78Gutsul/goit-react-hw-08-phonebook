@@ -1,61 +1,94 @@
-import React, { useState } from "react";
+import React, { Component } from "react";
+import { connect } from "react-redux";
 import PropTypes from "prop-types";
+
+import { getContacts } from "../../redux/contacts/contactsSelector";
+import * as contactsOperations from "../../redux/contacts/contactsOperations";
+
 import s from "./ContactForm.module.css";
 
-export default function ContactForm({ onSubmit }) {
-  const [name, setName] = useState("");
-  const [number, setNumber] = useState("");
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSubmit(name, number);
-    setName("");
-    setNumber("");
+class ContactForm extends Component {
+  static propTypes = {
+    onSubmit: PropTypes.func.isRequired,
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.currentTarget;
-    switch (name) {
-      case "name":
-        setName(value);
-        break;
-      case "number":
-        setNumber(value);
-        break;
-      default:
-        return;
+  state = {
+    name: "",
+    number: "",
+  };
+
+  handleChange = (event) => {
+    const { name, value } = event.currentTarget;
+    this.setState({ [name]: value });
+  };
+
+  handleSubmit = (event) => {
+    event.preventDefault();
+    const { name } = this.state;
+    const { contacts, onSubmit } = this.props;
+    const sameContact = contacts.find(
+      (item) => item.name.toLowerCase() === name.toLowerCase()
+    );
+    if (sameContact) {
+      alert(`${name} Already exist`);
+      this.reset();
+      return;
     }
+    onSubmit(this.state);
+    this.reset();
   };
 
-  return (
-    <form className={s.list} onSubmit={handleSubmit}>
-      <label className={s.label}>
-        Name
+  reset = () => {
+    this.setState({ name: "", number: "" });
+  };
+
+  render() {
+    const { name, number } = this.state;
+    return (
+      <form className={s.form} onSubmit={this.handleSubmit}>
+        <label className={s.label} htmlFor="name">
+          Name
+        </label>
         <input
           className={s.input}
+          id="name"
           type="text"
           name="name"
           value={name}
-          onChange={handleChange}
+          onChange={this.handleChange}
+          placeholder="Name"
+          autoComplete="off"
+          autoFocus
         />
-      </label>
-      <label className={s.label}>
-        Number
+
+        <label className={s.label} htmlFor="number">
+          Number
+        </label>
         <input
+          id="number"
           className={s.input}
           type="text"
           name="number"
           value={number}
-          onChange={handleChange}
+          onChange={this.handleChange}
+          placeholder="Phone number"
+          autoComplete="off"
         />
-      </label>
-      <button className={s.button} type="submit">
-        Add contact
-      </button>
-    </form>
-  );
-}
 
-ContactForm.propTypes = {
-  onSubmit: PropTypes.func.isRequired,
-};
+        <button className={s.btn} type="submit">
+          Add contact
+        </button>
+      </form>
+    );
+  }
+}
+const mapStateToProps = (state) => ({
+  contacts: getContacts(state),
+});
+
+const mapDispatchToProps = (dispatch) => ({
+  onSubmit: ({ name, number }) =>
+    dispatch(contactsOperations.addContact({ name, number })),
+});
+
+export default connect(mapStateToProps, mapDispatchToProps)(ContactForm);
